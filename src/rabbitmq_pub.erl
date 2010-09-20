@@ -1,4 +1,4 @@
--module(rabbitmq_test).
+-module(rabbitmq_pub).
 -compile(export_all).
 
 -include_lib("amqp_client/include/amqp_client.hrl").
