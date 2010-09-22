@@ -3,7 +3,12 @@
 
 -include_lib("amqp_client/include/amqp_client.hrl").
 
-main() ->
+
+start() ->
+    register(?MODULE, spawn(fun subscribe/0)).
+
+
+subscribe() ->
     Connection = amqp_connection:start_network(#amqp_params{host = "lab.ndpar.com"}),
     Channel = amqp_connection:open_channel(Connection),
 
@@ -28,13 +33,23 @@ main() ->
     amqp_connection:close(Connection),
     ok.
 
+
 loop(Channel) ->
     receive
         #'basic.consume_ok'{} -> loop(Channel);
         #'basic.cancel_ok'{} -> ok;
-        {#'basic.deliver'{delivery_tag = _Tag}, Content} ->
-            {amqp_msg, _Props, Payload} = Content,
-            io:format("Received message: ~p~n", [binary_to_list(Payload)]),
+        {#'basic.deliver'{delivery_tag = _Tag}, Message} ->
+            spawn(fun() -> handle(Message) end),
             loop(Channel)
     end.
+
+
+handle(Message) ->
+    {amqp_msg, _Props, Payload} = Message,
+    io:format("Received message: ~p~n", [binary_to_list(Payload)]).
+
+
+stop() ->
+    ?MODULE ! #'basic.cancel_ok'{},
+    ok.
 
