@@ -12,16 +12,16 @@ subscribe() ->
     Connection = amqp_connection:start_network(#amqp_params{host = "lab.ndpar.com"}),
     Channel = amqp_connection:open_channel(Connection),
 
-    Exchange = <<"myExchange">>,
-    Queue = <<"myQueue">>,
+    Exchange = <<"ndpar.topic">>,
+    Queue = <<"ndpar.erlang.client">>,
 
-    DeclareExchange = #'exchange.declare'{exchange = Exchange, type = <<"direct">>},
+    DeclareExchange = #'exchange.declare'{exchange = Exchange, type = <<"topic">>},
     #'exchange.declare_ok'{} = amqp_channel:call(Channel, DeclareExchange),
 
     DeclareQueue = #'queue.declare'{queue = Queue},
     #'queue.declare_ok'{} = amqp_channel:call(Channel, DeclareQueue),
 
-    Binding = #'queue.bind'{queue = Queue, exchange = Exchange, routing_key = <<"myRoutingKey">>},
+    Binding = #'queue.bind'{queue = Queue, exchange = Exchange, routing_key = <<"NDPAR.ERLANG.#">>},
     #'queue.bind_ok'{} = amqp_channel:call(Channel, Binding),
 
     Sub = #'basic.consume'{queue = Queue, no_ack = true},       
