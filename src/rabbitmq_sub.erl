@@ -1,6 +1,7 @@
 -module(rabbitmq_sub).
 -compile(export_all).
 
+-include("rabbitmq_demo.hrl").
 -include_lib("amqp_client/include/amqp_client.hrl").
 
 
@@ -9,22 +10,19 @@ start() ->
 
 
 subscribe() ->
-    Connection = amqp_connection:start_network(#amqp_params{host = "lab.ndpar.com"}),
+    Connection = amqp_connection:start_network(#amqp_params{host = ?DEMO_HOST}),
     Channel = amqp_connection:open_channel(Connection),
 
-    Exchange = <<"ndpar.topic">>,
-    Queue = <<"ndpar.erlang.client">>,
+    Exchange = #'exchange.declare'{exchange = ?DEMO_EXCHANGE, type = ?DEMO_EXCHANGE_TYPE},
+    #'exchange.declare_ok'{} = amqp_channel:call(Channel, Exchange),
 
-    DeclareExchange = #'exchange.declare'{exchange = Exchange, type = <<"topic">>},
-    #'exchange.declare_ok'{} = amqp_channel:call(Channel, DeclareExchange),
+    Queue = #'queue.declare'{queue = ?DEMO_QUEUE},
+    #'queue.declare_ok'{} = amqp_channel:call(Channel, Queue),
 
-    DeclareQueue = #'queue.declare'{queue = Queue},
-    #'queue.declare_ok'{} = amqp_channel:call(Channel, DeclareQueue),
-
-    Binding = #'queue.bind'{queue = Queue, exchange = Exchange, routing_key = <<"NDPAR.ERLANG.#">>},
+    Binding = #'queue.bind'{queue = ?DEMO_QUEUE, exchange = ?DEMO_EXCHANGE, routing_key = ?DEMO_BINDING_KEY},
     #'queue.bind_ok'{} = amqp_channel:call(Channel, Binding),
 
-    Sub = #'basic.consume'{queue = Queue, no_ack = true},       
+    Sub = #'basic.consume'{queue = ?DEMO_QUEUE, no_ack = true},
     #'basic.consume_ok'{consumer_tag = _Tag} = amqp_channel:subscribe(Channel, Sub, self()),
 
     loop(Channel),
