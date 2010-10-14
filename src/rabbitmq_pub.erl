@@ -8,14 +8,14 @@
 send() -> send(["3"]).
 
 
-send(Args) ->
+send([Arg]) ->
     Connection = amqp_connection:start_network(#amqp_params{host = ?DEMO_HOST}),
     Channel = amqp_connection:open_channel(Connection),
 
     Routing = <<"NDPAR.ERLANG.ERLANG">>,
     Payload = <<"Hello from Erlang!">>,
 
-    N = list_to_integer(hd(Args)),
+    N = list_to_integer(Arg),
     for(1, N, fun() -> basic_publish(Channel, ?DEMO_EXCHANGE, Routing, Payload) end),
 
     amqp_channel:close(Channel),
