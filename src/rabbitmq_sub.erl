@@ -1,5 +1,6 @@
 -module(rabbitmq_sub).
--compile(export_all).
+
+-export([start/0, subscribe/0, stop/0]).
 
 -include("rabbitmq_demo.hrl").
 -include_lib("amqp_client/include/amqp_client.hrl").
