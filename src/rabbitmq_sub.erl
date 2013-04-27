@@ -1,9 +1,12 @@
 -module(rabbitmq_sub).
 
--export([start/0, subscribe/0, stop/0]).
+-export([start/0, stop/0]).
 
--include("rabbitmq_demo.hrl").
+-include("../include/rabbitmq_demo.hrl").
 -include_lib("amqp_client/include/amqp_client.hrl").
+
+-define(DEMO_QUEUE, <<"ndpar.erlang.client">>).
+-define(DEMO_BINDING_KEY, <<"NDPAR.#">>).
 
 
 start() ->
@@ -11,35 +14,35 @@ start() ->
 
 
 subscribe() ->
-    Connection = amqp_connection:start_network(#amqp_params{host = ?DEMO_HOST}),
-    Channel = amqp_connection:open_channel(Connection),
+    {ok, Connection} = amqp_connection:start(#amqp_params_network{host = ?DEMO_HOST}),
+    {ok, Channel} = amqp_connection:open_channel(Connection),
 
-    Exchange = #'exchange.declare'{exchange = ?DEMO_EXCHANGE, type = ?DEMO_EXCHANGE_TYPE},
-    #'exchange.declare_ok'{} = amqp_channel:call(Channel, Exchange),
+    %Exchange = #'exchange.declare'{exchange = ?DEMO_EXCHANGE, type = <<"topic">>},
+    %amqp_channel:call(Channel, Exchange),
 
-    Queue = #'queue.declare'{queue = ?DEMO_QUEUE},
-    #'queue.declare_ok'{} = amqp_channel:call(Channel, Queue),
+    Queue = #'queue.declare'{queue = ?DEMO_QUEUE, auto_delete = true},
+    amqp_channel:call(Channel, Queue),
 
     Binding = #'queue.bind'{queue = ?DEMO_QUEUE, exchange = ?DEMO_EXCHANGE, routing_key = ?DEMO_BINDING_KEY},
-    #'queue.bind_ok'{} = amqp_channel:call(Channel, Binding),
+    amqp_channel:call(Channel, Binding),
 
     Sub = #'basic.consume'{queue = ?DEMO_QUEUE, no_ack = true},
-    #'basic.consume_ok'{consumer_tag = _Tag} = amqp_channel:subscribe(Channel, Sub, self()),
+    amqp_channel:subscribe(Channel, Sub, self()),
 
-    loop(Channel),
-
-    amqp_channel:close(Channel),
-    amqp_connection:close(Connection),
-    ok.
+    loop(Connection, Channel).
 
 
-loop(Channel) ->
+loop(Connection, Channel) ->
     receive
-        #'basic.consume_ok'{} -> loop(Channel);
-        #'basic.cancel_ok'{} -> ok;
-        {#'basic.deliver'{delivery_tag = _Tag}, Message} ->
+        #'basic.consume_ok'{} ->
+            loop(Connection, Channel);
+        #'basic.cancel_ok'{} ->
+            amqp_channel:close(Channel),
+            amqp_connection:close(Connection),
+            ok;
+        {#'basic.deliver'{}, Message} ->
             spawn(fun() -> handle(Message) end),
-            loop(Channel)
+            loop(Connection, Channel)
     end.
 
 
@@ -51,4 +54,3 @@ handle(Message) ->
 stop() ->
     ?MODULE ! #'basic.cancel_ok'{},
     ok.
-

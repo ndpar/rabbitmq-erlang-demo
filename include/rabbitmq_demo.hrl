@@ -1,0 +1,2 @@
+-define(DEMO_HOST, "localhost").
+-define(DEMO_EXCHANGE, <<"amq.topic">>).

@@ -1,34 +1,21 @@
 -module(rabbitmq_pub).
 
--export([send/0, send/1]).
+-export([send/1, send/2]).
 
--include("rabbitmq_demo.hrl").
+-include("../include/rabbitmq_demo.hrl").
 -include_lib("amqp_client/include/amqp_client.hrl").
 
 
-send() -> send(["3"]).
+send([RoutingKey | Message]) ->
+    send(RoutingKey, string:join(Message, " ")).
 
+send(RoutingKey, Message) ->
+    {ok, Connection} = amqp_connection:start(#amqp_params_network{host = ?DEMO_HOST}),
+    {ok, Channel} = amqp_connection:open_channel(Connection),
 
-send([Arg]) ->
-    Connection = amqp_connection:start_network(#amqp_params{host = ?DEMO_HOST}),
-    Channel = amqp_connection:open_channel(Connection),
-
-    Routing = <<"NDPAR.ERLANG.ERLANG">>,
-    Payload = <<"Hello from Erlang!">>,
-
-    N = list_to_integer(Arg),
-    for(1, N, fun() -> basic_publish(Channel, ?DEMO_EXCHANGE, Routing, Payload) end),
+    Publish = #'basic.publish'{exchange = ?DEMO_EXCHANGE, routing_key = list_to_binary(RoutingKey)},
+    amqp_channel:cast(Channel, Publish, #amqp_msg{payload = list_to_binary(Message)}),
 
     amqp_channel:close(Channel),
-    amqp_connection:close(Connection).
-
-
-basic_publish(Channel, Exchange, Routing, Payload) ->
-    Publish = #'basic.publish'{exchange = Exchange, routing_key = Routing},
-    Message = #amqp_msg{payload = Payload},
-    amqp_channel:cast(Channel, Publish, Message).
-
-
-for(N, N, F) -> F();
-for(I, N, F) -> F(), for(I+1, N, F).
-
+    amqp_connection:close(Connection),
+    ok.

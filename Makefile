@@ -1,17 +1,52 @@
-.SUFFIXES: .erl .beam .yrl
+AMQP_CLIENT=amqp_client
+RABBITMQ_COMMON=rabbit_common
 
-export ERL_LIBS=$(RABBITMQ_HOME)/rabbitmq-erlang-client/dist
+RABBITMQ_CLIENT_HOME=~/projects/rabbit/rabbitmq-erlang-client
+RABBITMQ_CLIENT_DIST=$(RABBITMQ_CLIENT_HOME)/dist
 
 SOURCE_DIR=src
+INCLUDE_DIR=include
 EBIN_DIR=ebin
-MODS=$(wildcard $(SOURCE_DIR)/*.erl)
+DEPS_DIR=deps
 
-%.beam: %.erl
-	erlc -o $(EBIN_DIR) -W $<
+INCLUDES=$(wildcard $(INCLUDE_DIR)/*.hrl)
+SOURCES=$(wildcard $(SOURCE_DIR)/*.erl)
+TARGETS=$(patsubst $(SOURCE_DIR)/%.erl, $(EBIN_DIR)/%.beam, $(SOURCES))
 
-all: beam
+DEPS=$(DEPS_DIR)/$(AMQP_CLIENT) $(DEPS_DIR)/$(RABBITMQ_COMMON)
+LIBS_PATH=$(DEPS_DIR)
 
-beam: ${MODS:%.erl=%.beam}
+ERLC_OPTS=-I $(INCLUDE_DIR) -pa $(EBIN_DIR) -o $(EBIN_DIR) -Wall -v +debug_info
+
+
+all: compile
+
+compile: $(TARGETS)
 
 clean:
-	rm -rf $(EBIN_DIR)/*.beam $(EBIN_DIR)/erl_crash.dump
+	rm -f $(EBIN_DIR)/*.beam
+	rm -f erl_crash.dump
+	rm -rf $(DEPS_DIR)
+
+###############################################################################
+## Internal Targets
+###############################################################################
+
+$(EBIN_DIR):
+	mkdir -p $@
+
+$(EBIN_DIR)/%.beam: $(SOURCE_DIR)/%.erl $(INCLUDES) $(DEPS) | $(EBIN_DIR)
+	ERL_LIBS=$(LIBS_PATH) erlc $(ERLC_OPTS) $<
+
+$(DEPS_DIR):
+	mkdir -p $@
+
+$(DEPS_DIR)/$(AMQP_CLIENT): $(RABBITMQ_CLIENT_DIST) | $(DEPS_DIR)
+	rm -rf $@
+	unzip -q -o $(RABBITMQ_CLIENT_DIST)/$(AMQP_CLIENT)*.ez -d $(DEPS_DIR)
+	mv $(DEPS_DIR)/$(AMQP_CLIENT)* $@
+
+$(DEPS_DIR)/$(RABBITMQ_COMMON): $(RABBITMQ_CLIENT_DIST) | $(DEPS_DIR)
+	rm -rf $@
+	unzip -q -o $(RABBITMQ_CLIENT_DIST)/$(RABBITMQ_COMMON)*.ez -d $(DEPS_DIR)
+	mv $(DEPS_DIR)/$(RABBITMQ_COMMON)* $@
