@@ -1,29 +1,28 @@
-## Building RabbitMQ Erlang client
+## Build RabbitMQ Erlang client
 
-    $ mkdir ~/rabbitmq-master
-    $ cd ~/rabbitmq-master
-    $ git clone git://github.com/rabbitmq/rabbitmq-server.git
-    $ git clone git://github.com/rabbitmq/rabbitmq-codegen.git
-    $ git clone git://github.com/rabbitmq/rabbitmq-erlang-client.git
+    $ mkdir -p ~/projects/rabbit
+    $ cd ~/projects/rabbit
+    $ git clone git@github.com:rabbitmq/rabbitmq-codegen.git
+    $ git clone git@github.com:rabbitmq/rabbitmq-server.git
+    $ git clone git@github.com:rabbitmq/rabbitmq-erlang-client.git
     $ cd rabbitmq-erlang-client
     $ make
 
-## Building demo
+## Build demo
 
-    $ cd ~/rabbitmq-erlang-demo
-    $ vi src/rabbitmq_demo.hrl
-    $ export RABBITMQ_HOME=~/rabbitmq-master
     $ make
 
-## Starting subscriber
+## Subscribe to messages
 
-    $ cd ~/rabbitmq-erlang-demo/ebin
     $ ./sub.sh
 
 ## Publish messages
 
-    $ cd ~/rabbitmq-erlang-demo/ebin
-    $ ./pub.sh 10
+    $ ./pub.sh "NDPAR.ERLANG.TEST" "Hello World"
+
+## Unsubscribe
+
+    > rabbitmq_sub:stop().
 
 ## Links
 
